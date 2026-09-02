@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESPACIA - Centro de Comandos Multimedia</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    .card {
+      background: #181825;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 800px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .info-box {
+      background: #313244;
+      border-left: 4px solid #f9e2af;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .info-box summary {
+      font-weight: bold;
+      color: #f9e2af;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .info-box ul {
+      margin: 10px 0 0 20px;
+      padding: 0;
+    }
+    .info-box li { margin-bottom: 8px; }
+    code {
+      background: #11111b;
+      color: #a6e3a1;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    h2 { color: #89b4fa; margin-top: 0; }
+    label { font-weight: 600; display: block; margin-top: 15px; color: #a6adc8; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      box-sizing: border-box;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      background: #313244;
+      color: #cdd6f4;
+      font-size: 14px;
+    }
+    textarea.code {
+      font-family: monospace;
+      height: 120px;
+      background: #11111b;
+      color: #f9e2af;
+      font-size: 13px;
+    }
+    button {
+      padding: 10px 18px;
+      background: #a6e3a1;
+      color: #11111b;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    button:hover { background: #94e2d5; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .hint { font-size: 11px; color: #a6adc8; margin-top: 4px; }
+    .input-group { display: flex; gap: 10px; align-items: flex-end; }
+    .input-group div { flex-grow: 1; }
+    .btn-paste {
+      width: auto;
+      margin-top: 0;
+      padding: 10px 18px;
+      background: #89b4fa;
+      color: #11111b;
+      white-space: nowrap;
+    }
+    .btn-paste:hover { background: #b4befe; }
+    .action-box {
+      border: 1px dashed #89b4fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      background: #1e1e2e;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>ESPACIA - Centro de Comandos Multimedia</h2>
+
+  <details class="info-box">
+    <summary>📌 Requisitos e Instalación Rápida en Windows (CMD / PowerShell)</summary>
+    <p style="margin: 8px 0 5px 0;">Ejecuta estos comandos en tu consola si aún no tienes las herramientas:</p>
+    <ul>
+      <li><code>winget install yt-dlp.yt-dlp</code></li>
+      <li><code>winget install Gyan.FFmpeg</code></li>
+    </ul>
+  </details>
+
+  <!-- PASO 1: SELECCIONAR LA ACCIÓN PRIMERO -->
+  <div>
+    <label for="actionType" style="font-size: 15px; color: #f9e2af;">1. ¿Qué deseas hacer?</label>
+    <select id="actionType" onchange="updateUI(); generateCommand();">
+      <optgroup label="📥 Descargas desde la Web (yt-dlp)">
+        <option value="dl_video" selected>Descargar Video (MP4 / MKV / WEBM)</option>
+        <option value="dl_audio">Descargar solo Audio (MP3 / M4A)</option>
+      </optgroup>
+      <optgroup label="⚙️ Procesamiento de Archivos Locales (FFmpeg)">
+        <option value="normalize">🔊 Normalizar Volumen (-26 LUFS Sala de Espera)</option>
+        <option value="merge_audio">🎵 Insertar / Reemplazar / Mezclar Audio</option>
+        <option value="fix_meta">🛠️ Reparar Metadatos (faststart / Bucle MP4)</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <!-- PASO 2A: URL DE DESCARGA (Solo visible para descargas) -->
+  <div id="urlSection" style="margin-top: 15px;">
+    <div class="input-group">
+      <div>
+        <label for="url">2. URL del Video Web:</label>
+        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." oninput="generateCommand()">
+      </div>
+      <button type="button" class="btn-paste" onclick="pasteClipboard()">📋 Pegar URL</button>
+    </div>
+  </div>
+
+  <!-- OPCIONES DE DESCARGA VIDEO -->
+  <div id="dlVideoBox" class="grid-2" style="margin-top: 10px;">
+    <div>
+      <label for="videoFormat">Formato de Video:</label>
+      <select id="videoFormat" onchange="generateCommand()">
+        <option value="mp4" selected>MP4 (Compatible universal)</option>
+        <option value="mkv">MKV (Máxima calidad)</option>
+        <option value="webm">WEBM (Nativo Web)</option>
+      </select>
+    </div>
+    <div>
+      <label for="quality">Calidad:</label>
+      <select id="quality" onchange="generateCommand()">
+        <option value="best">Máxima Disponible (4K/2K/1080p)</option>
+        <option value="1080" selected>Full HD (1080p)</option>
+        <option value="720">HD (720p)</option>
+        <option value="480">480p</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- OPCIONES DE DESCARGA AUDIO -->
+  <div id="dlAudioBox" class="grid-2" style="display: none; margin-top: 10px;">
+    <div>
+      <label for="audioFormat">Formato de Audio:</label>
+      <select id="audioFormat" onchange="generateCommand()">
+        <option value="mp3" selected>MP3 (Universal)</option>
+        <option value="m4a">M4A (Calidad original sin pérdida)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: NORMALIZACIÓN -->
+  <div id="normalizeBox" class="action-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Normalización de Audio (Reemplazo Automático)</h3>
+    <div class="grid-3">
+      <div>
+        <label for="normScope">Alcance:</label>
+        <select id="normScope" onchange="toggleNormInputs(); generateCommand();">
+          <option value="all_mp4" selected>Todos los *.mp4 de la carpeta</option>
+          <option value="single">Un solo archivo específico</option>
+          <option value="batch_num">Lote numerado (Ej: trivia_01 a 06)</option>
+        </select>
+      </div>
+      <div>
+        <label for="normTarget">Objetivo LUFS:</label>
+        <input type="number" id="normTarget" value="-26" step="1" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normOverwrite">Resultado:</label>
+        <select id="normOverwrite" onchange="generateCommand()">
+          <option value="replace" selected>Reemplazar original (Mismo nombre)</option>
+          <option value="prefix">Guardar con prefijo norm_</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="normSingleFile" style="display: none; margin-top: 10px;">
+      <label for="normFileName">Nombre del archivo:</label>
+      <input type="text" id="normFileName" value="trivia_01.mp4" oninput="generateCommand()">
+    </div>
+
+    <div id="normBatchInputs" class="grid-3" style="display: none; margin-top: 10px;">
+      <div>
+        <label for="normPrefix">Prefijo:</label>
+        <input type="text" id="normPrefix" value="trivia_0" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normStart">Inicio:</label>
+        <input type="number" id="normStart" value="1" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normEnd">Fin:</label>
+        <input type="number" id="normEnd" value="6" oninput="generateCommand()">
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: INSERTAR / MEZCLAR AUDIO -->
+  <div id="mergeBox" class="action-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Ensamblado de Audio</h3>
+    <div class="grid-2">
+      <div>
+        <label for="localVideo">Video Base:</label>
+        <input type="text" id="localVideo" value="trivia_01.mp4" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="localAudio">Pista de Audio Local:</label>
+        <input type="text" id="localAudio" value="musica.mp3" oninput="generateCommand()">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label for="audioMode">Modo:</label>
+        <select id="audioMode" onchange="generateCommand()">
+          <option value="replace" selected>Reemplazar audio del video</option>
+          <option value="mix">Mezclar ambos audios</option>
+        </select>
+      </div>
+      <div>
+        <label for="mergeOverwrite">Resultado:</label>
+        <select id="mergeOverwrite" onchange="generateCommand()">
+          <option value="replace" selected>Sobrescribir Video Base (Mismo nombre)</option>
+          <option value="new_file">Guardar en un archivo nuevo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: REPARAR METADATOS -->
+  <div id="fixMetaBox" class="action-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Reparación MP4 (faststart)</h3>
+    <div class="grid-2">
+      <div>
+        <label for="fixScope">Alcance:</label>
+        <select id="fixScope" onchange="toggleFixInputs(); generateCommand();">
+          <option value="all_mp4" selected>Todos los *.mp4 de la carpeta</option>
+          <option value="single">Un solo archivo</option>
+        </select>
+      </div>
+      <div>
+        <label for="fixFileName" id="fixFileLabel" style="display:none;">Nombre del archivo:</label>
+        <input type="text" id="fixFileName" value="trivia_01.mp4" style="display:none;" oninput="generateCommand()">
+      </div>
+    </div>
+  </div>
+
+  <!-- OPCIONES DE TRAMOS PARA DESCARGAS -->
+  <div class="grid-3" id="segmentsSection" style="margin-top: 15px;">
+    <div>
+      <label for="mode">Modo Descarga:</label>
+      <select id="mode" onchange="toggleSegments(); generateCommand();">
+        <option value="single" selected>Archivo Completo</option>
+        <option value="segments">Por Tramos (Fraccionado)</option>
+      </select>
+    </div>
+    <div>
+      <label for="duration">Minutos por tramo:</label>
+      <input type="number" id="duration" value="30" disabled oninput="generateCommand()">
+    </div>
+    <div>
+      <label for="totalDuration">Duración Total Video:</label>
+      <input type="text" id="totalDuration" value="01:00:00" placeholder="HH:MM:SS" disabled oninput="generateCommand()">
+    </div>
+  </div>
+
+  <label for="finalOutput" style="margin-top: 20px;">Comando listo para CMD:</label>
+  <textarea id="finalOutput" class="code" readonly></textarea>
+
+  <button id="copyBtn" onclick="copyToClipboard()" style="background: #f9e2af; color: #11111b; margin-top: 15px;">
+    📋 Copiar Comando al Portapapeles
+  </button>
+</div>
+
+<script>
+  async function pasteClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        document.getElementById('url').value = text.trim();
+        generateCommand();
+      }
+    } catch (err) { alert('Concede permiso al navegador para acceder al portapapeles.'); }
+  }
+
+  function updateUI() {
+    const action = document.getElementById('actionType').value;
+    const isDlVideo = (action === 'dl_video');
+    const isDlAudio = (action === 'dl_audio');
+    const isDownload = isDlVideo || isDlAudio;
+
+    document.getElementById('urlSection').style.display = isDownload ? 'block' : 'none';
+    document.getElementById('dlVideoBox').style.display = isDlVideo ? 'grid' : 'none';
+    document.getElementById('dlAudioBox').style.display = isDlAudio ? 'grid' : 'none';
+    document.getElementById('segmentsSection').style.display = isDownload ? 'grid' : 'none';
+
+    document.getElementById('normalizeBox').style.display = (action === 'normalize') ? 'block' : 'none';
+    document.getElementById('mergeBox').style.display = (action === 'merge_audio') ? 'block' : 'none';
+    document.getElementById('fixMetaBox').style.display = (action === 'fix_meta') ? 'block' : 'none';
+  }
+
+  function toggleNormInputs() {
+    const scope = document.getElementById('normScope').value;
+    document.getElementById('normSingleFile').style.display = (scope === 'single') ? 'block' : 'none';
+    document.getElementById('normBatchInputs').style.display = (scope === 'batch_num') ? 'grid' : 'none';
+  }
+
+  function toggleFixInputs() {
+    const scope = document.getElementById('fixScope').value;
+    const isSingle = (scope === 'single');
+    document.getElementById('fixFileLabel').style.display = isSingle ? 'block' : 'none';
+    document.getElementById('fixFileName').style.display = isSingle ? 'block' : 'none';
+  }
+
+  function toggleSegments() {
+    const isSeg = (document.getElementById('mode').value === 'segments');
+    document.getElementById('duration').disabled = !isSeg;
+    document.getElementById('totalDuration').disabled = !isSeg;
+  }
+
+  function generateCommand() {
+    const action = document.getElementById('actionType').value;
+    const output = document.getElementById('finalOutput');
+
+    // 1. NORMALIZACIÓN DE AUDIO
+    if (action === 'normalize') {
+      const scope = document.getElementById('normScope').value;
+      const target = document.getElementById('normTarget').value || '-26';
+      const replace = document.getElementById('normOverwrite').value === 'replace';
+
+      if (scope === 'all_mp4') {
+        output.value = replace 
+          ? `for %f in (*.mp4) do (ffmpeg -i "%f" -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy "temp_%f" && move /y "temp_%f" "%f")`
+          : `for %f in (*.mp4) do ffmpeg -i "%f" -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy "norm_%f"`;
+      } else if (scope === 'single') {
+        const file = document.getElementById('normFileName').value.trim() || 'video.mp4';
+        output.value = replace
+          ? `ffmpeg -i "${file}" -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy "temp_${file}" && move /y "temp_${file}" "${file}"`
+          : `ffmpeg -i "${file}" -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy "norm_${file}"`;
+      } else {
+        const p = document.getElementById('normPrefix').value;
+        const s = document.getElementById('normStart').value;
+        const e = document.getElementById('normEnd').value;
+        output.value = replace
+          ? `for /L %i in (${s},1,${e}) do (ffmpeg -i ${p}%i.mp4 -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy temp_${p}%i.mp4 && move /y temp_${p}%i.mp4 ${p}%i.mp4)`
+          : `for /L %i in (${s},1,${e}) do ffmpeg -i ${p}%i.mp4 -af loudnorm=I=${target}:LRA=7:TP=-2 -c:v copy norm_${p}%i.mp4`;
+      }
+      return;
+    }
+
+    // 2. INSERTAR / MEZCLAR AUDIO
+    if (action === 'merge_audio') {
+      const v = document.getElementById('localVideo').value.trim() || 'video.mp4';
+      const a = document.getElementById('localAudio').value.trim() || 'audio.mp3';
+      const mode = document.getElementById('audioMode').value;
+      const replace = document.getElementById('mergeOverwrite').value === 'replace';
+      const targetOut = replace ? `temp_${v}` : `nuevo_${v}`;
+
+      let cmd = (mode === 'replace')
+        ? `ffmpeg -i "${v}" -i "${a}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${targetOut}"`
+        : `ffmpeg -i "${v}" -i "${a}" -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[a]" -map 0:v -map "[a]" -c:v copy -c:a aac "${targetOut}"`;
+
+      output.value = replace ? `${cmd} && move /y "${targetOut}" "${v}"` : cmd;
+      return;
+    }
+
+    // 3. REPARAR METADATOS
+    if (action === 'fix_meta') {
+      const scope = document.getElementById('fixScope').value;
+      if (scope === 'all_mp4') {
+        output.value = `for %f in (*.mp4) do (ffmpeg -i "%f" -c copy -movflags +faststart "temp_%f" && move /y "temp_%f" "%f")`;
+      } else {
+        const f = document.getElementById('fixFileName').value.trim() || 'video.mp4';
+        output.value = `ffmpeg -i "${f}" -c copy -movflags +faststart "temp_${f}" && move /y "temp_${f}" "${f}"`;
+      }
+      return;
+    }
+
+    // 4. DESCARGAS WEB (yt-dlp)
+    const url = document.getElementById('url').value.trim() || 'URL_DEL_VIDEO';
+    const path = '%USERPROFILE%\\Downloads\\%(title)s.%(ext)s';
+
+    if (action === 'dl_video') {
+      const fmt = document.getElementById('videoFormat').value;
+      const q = document.getElementById('quality').value;
+      const filter = (q === 'best') ? `"bv*[ext=${fmt}]+ba/b[ext=${fmt}]/best"` : `"bv*[height<=${q}][ext=${fmt}]+ba/b[height<=${q}]/best"`;
+      output.value = `yt-dlp -f ${filter} --merge-output-format ${fmt} -o "${path}" "${url}"`;
+    } else {
+      const afmt = document.getElementById('audioFormat').value;
+      output.value = (afmt === 'mp3')
+        ? `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${path}" "${url}"`
+        : `yt-dlp -f "ba[ext=m4a]/ba" -x --audio-format m4a -o "${path}" "${url}"`;
+    }
+  }
+
+  function copyToClipboard() {
+    const text = document.getElementById('finalOutput').value;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.innerText = '¡Copiado con éxito! ✅';
+      setTimeout(() => { btn.innerText = '📋 Copiar Comando al Portapapeles'; }, 2000);
+    });
+  }
+
+  updateUI();
+  generateCommand();
+</script>
+</body>
+</html>
