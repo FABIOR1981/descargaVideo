@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generador Amigable yt-dlp</title>
+  <title>Generador Amigable yt-dlp & FFmpeg</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,7 +63,7 @@
       color: #cdd6f4;
       font-size: 14px;
     }
-    input:disabled {
+    input:disabled, select:disabled {
       background: #181825;
       border-color: #313244;
       color: #585b70;
@@ -107,12 +107,19 @@
       white-space: nowrap;
     }
     .btn-paste:hover { background: #b4befe; }
+    .audio-box {
+      border: 1px dashed #89b4fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      background: #1e1e2e;
+    }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Generador Amigable yt-dlp</h2>
+  <h2>Generador Amigable yt-dlp & FFmpeg</h2>
 
   <!-- Requisitos e Instalación Rápida -->
   <details class="info-box">
@@ -130,29 +137,32 @@
         <code>Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "yt-dlp.exe"</code>
       </li>
       <li>
-        <b>Nota sobre FFmpeg:</b> Es imprescindible para convertir audio a MP3 o unir transmisiones de video/audio en HD sin errores.
+        <b>Nota sobre FFmpeg:</b> Es imprescindible para convertir audio a MP3, unir transmisiones o insertar pistas de audio en videos locales.
       </li>
     </ul>
   </details>
 
-  <div class="input-group">
-    <div>
-      <label for="url">1. URL del Video (YouTube, Instagram, TikTok, Vimeo, etc.):</label>
-      <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." oninput="generateCommand()">
+  <div id="downloadSection">
+    <div class="input-group">
+      <div>
+        <label for="url">1. URL del Video (YouTube, Instagram, TikTok, Vimeo, etc.):</label>
+        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." oninput="generateCommand()">
+      </div>
+      <button type="button" class="btn-paste" onclick="pasteClipboard()">📋 Pegar URL</button>
     </div>
-    <button type="button" class="btn-paste" onclick="pasteClipboard()">📋 Pegar URL</button>
+    <div class="hint">Compatible con YouTube, Instagram, TikTok, Twitter/X, Facebook, Vimeo y más.</div>
   </div>
-  <div class="hint">Compatible con YouTube, Instagram, TikTok, Twitter/X, Facebook, Vimeo y más.</div>
 
   <div class="grid-2">
     <div>
-      <label for="ext">2. Formato Final de Salida:</label>
+      <label for="ext">2. Acció/Formato Final de Salida:</label>
       <select id="ext" onchange="toggleFormatOptions(); generateCommand();">
         <option value="mp4" selected>Video MP4 (Compatible con todo)</option>
         <option value="mkv">Video MKV (Máxima fidelidad)</option>
         <option value="webm">Video WEBM (Nativo de YouTube)</option>
         <option value="mp3">Solo Audio MP3 (Música / Podcast)</option>
         <option value="m4a">Solo Audio M4A (Sin pérdida / Original)</option>
+        <option value="merge_audio">🎵 Insertar/Mezclar Audio local con Video</option>
       </select>
     </div>
     <div id="qualityBox">
@@ -166,8 +176,36 @@
     </div>
   </div>
 
+  <!-- Sección Especial para Insertar Audio Local -->
+  <div id="audioMergeBox" class="audio-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Configuración de Ensamblado de Audio (FFmpeg)</h3>
+    <div class="grid-2">
+      <div>
+        <label for="localVideo">Ruta / Nombre del Video Base:</label>
+        <input type="text" id="localVideo" value="trivia_01.mp4" placeholder="Ej: D:\Trivias\trivia_01.mp4" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="localAudio">Ruta / Nombre del Audio (MP3/WAV):</label>
+        <input type="text" id="localAudio" value="musica.mp3" placeholder="Ej: D:\Trivias\musica.mp3" oninput="generateCommand()">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label for="audioMode">Modo de Audio:</label>
+        <select id="audioMode" onchange="generateCommand()">
+          <option value="replace" selected>Reemplazar audio original por completo</option>
+          <option value="mix">Mezclar nuevo audio con el audio existente</option>
+        </select>
+      </div>
+      <div>
+        <label for="outputVideo">Nombre del Archivo Resultante:</label>
+        <input type="text" id="outputVideo" value="trivia_01_final.mp4" placeholder="trivia_01_final.mp4" oninput="generateCommand()">
+      </div>
+    </div>
+  </div>
+
   <!-- Fila dividida en 3 columnas -->
-  <div class="grid-3">
+  <div class="grid-3" id="segmentsSection">
     <div>
       <label for="mode">4. Modo de Descarga:</label>
       <select id="mode" onchange="toggleSegments(); generateCommand();">
@@ -209,7 +247,12 @@
   function toggleFormatOptions() {
     const ext = document.getElementById('ext').value;
     const isAudio = (ext === 'mp3' || ext === 'm4a');
-    document.getElementById('qualityBox').style.display = isAudio ? 'none' : 'block';
+    const isMerge = (ext === 'merge_audio');
+
+    document.getElementById('qualityBox').style.display = (isAudio || isMerge) ? 'none' : 'block';
+    document.getElementById('downloadSection').style.display = isMerge ? 'none' : 'flex';
+    document.getElementById('segmentsSection').style.display = isMerge ? 'none' : 'grid';
+    document.getElementById('audioMergeBox').style.display = isMerge ? 'block' : 'none';
   }
 
   function toggleSegments() {
@@ -244,15 +287,31 @@
   }
 
   function generateCommand() {
+    const ext = document.getElementById('ext').value;
+    const output = document.getElementById('finalOutput');
+
+    // Módulo especial para unión de audio con FFmpeg
+    if (ext === 'merge_audio') {
+      const vIn = document.getElementById('localVideo').value.trim() || 'video.mp4';
+      const aIn = document.getElementById('localAudio').value.trim() || 'audio.mp3';
+      const vOut = document.getElementById('outputVideo').value.trim() || 'resultado.mp4';
+      const aMode = document.getElementById('audioMode').value;
+
+      if (aMode === 'replace') {
+        output.value = `ffmpeg -i "${vIn}" -i "${aIn}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${vOut}"`;
+      } else {
+        output.value = `ffmpeg -i "${vIn}" -i "${aIn}" -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[a]" -map 0:v -map "[a]" -c:v copy -c:a aac "${vOut}"`;
+      }
+      return;
+    }
+
     const url = document.getElementById('url').value.trim() || 'URL_DEL_VIDEO';
     const defaultPath = '%USERPROFILE%\\Downloads\\';
     const defaultPrefix = '%(title)s';
     
-    const ext = document.getElementById('ext').value;
     const quality = document.getElementById('quality').value;
     const mode = document.getElementById('mode').value;
     const isAudio = (ext === 'mp3' || ext === 'm4a');
-    const output = document.getElementById('finalOutput');
 
     let baseCmd = '';
     if (isAudio) {
