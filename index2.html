@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generador Amigable yt-dlp & FFmpeg</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    .card {
+      background: #181825;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 800px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .info-box {
+      background: #313244;
+      border-left: 4px solid #f9e2af;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .info-box summary {
+      font-weight: bold;
+      color: #f9e2af;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .info-box ul {
+      margin: 10px 0 0 20px;
+      padding: 0;
+    }
+    .info-box li {
+      margin-bottom: 8px;
+    }
+    code {
+      background: #11111b;
+      color: #a6e3a1;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      display: inline-block;
+      margin-top: 2px;
+    }
+    h2 { color: #89b4fa; margin-top: 0; }
+    label { font-weight: 600; display: block; margin-top: 15px; color: #a6adc8; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      box-sizing: border-box;
+      border: 1px solid #45475a;
+      border-radius: 6px;
+      background: #313244;
+      color: #cdd6f4;
+      font-size: 14px;
+    }
+    input:disabled, select:disabled {
+      background: #181825;
+      border-color: #313244;
+      color: #585b70;
+      cursor: not-allowed;
+    }
+    textarea.code {
+      font-family: monospace;
+      height: 120px;
+      background: #11111b;
+      color: #f9e2af;
+      font-size: 13px;
+    }
+    button {
+      padding: 10px 18px;
+      background: #a6e3a1;
+      color: #11111b;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    button:hover { background: #94e2d5; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .hint { font-size: 11px; color: #a6adc8; margin-top: 4px; }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .input-group div { flex-grow: 1; }
+    .btn-paste {
+      width: auto;
+      margin-top: 0;
+      padding: 10px 18px;
+      background: #89b4fa;
+      color: #11111b;
+      white-space: nowrap;
+    }
+    .btn-paste:hover { background: #b4befe; }
+    .audio-box {
+      border: 1px dashed #89b4fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      background: #1e1e2e;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Generador Amigable yt-dlp & FFmpeg</h2>
+
+  <!-- Requisitos e Instalación Rápida -->
+  <details class="info-box">
+    <summary>📌 Requisitos e Instalación Rápida en Windows 11 (Haz clic para desplegar)</summary>
+    <p style="margin: 8px 0 5px 0;">Para ejecutar los comandos generados, necesitas tener instalados <code>yt-dlp</code> y <code>ffmpeg</code>. Puedes instalarlos ejecutando estos comandos en tu consola (PowerShell o CMD):</p>
+    
+    <ul>
+      <li>
+        <b>Opción 1: Vía winget (Gestor oficial de Windows 11 - Recomendado):</b><br>
+        <code>winget install yt-dlp.yt-dlp</code><br>
+        <code>winget install Gyan.FFmpeg</code>
+      </li>
+      <li>
+        <b>Opción 2: Descarga directa a tu carpeta activa (PowerShell):</b><br>
+        <code>Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "yt-dlp.exe"</code>
+      </li>
+      <li>
+        <b>Nota sobre FFmpeg:</b> Es imprescindible para convertir audio a MP3, unir transmisiones, reparar metadatos o insertar pistas de audio.
+      </li>
+    </ul>
+  </details>
+
+  <div id="downloadSection">
+    <div class="input-group">
+      <div>
+        <label for="url">1. URL del Video (YouTube, Instagram, TikTok, Vimeo, etc.):</label>
+        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." oninput="generateCommand()">
+      </div>
+      <button type="button" class="btn-paste" onclick="pasteClipboard()">📋 Pegar URL</button>
+    </div>
+    <div class="hint">Compatible con YouTube, Instagram, TikTok, Twitter/X, Facebook, Vimeo y más.</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label for="ext">2. Acción / Formato Final de Salida:</label>
+      <select id="ext" onchange="toggleFormatOptions(); generateCommand();">
+        <option value="mp4" selected>Video MP4 (Compatible con todo)</option>
+        <option value="mkv">Video MKV (Máxima fidelidad)</option>
+        <option value="webm">Video WEBM (Nativo de YouTube)</option>
+        <option value="mp3">Solo Audio MP3 (Música / Podcast)</option>
+        <option value="m4a">Solo Audio M4A (Sin pérdida / Original)</option>
+        <option value="merge_audio">🎵 Insertar/Mezclar Audio local con Video</option>
+        <option value="fix_meta">🛠️ Reparar Metadatos MP4 (faststart / Bucle)</option>
+      </select>
+    </div>
+    <div id="qualityBox">
+      <label for="quality">3. Calidad de Video Deseada:</label>
+      <select id="quality" onchange="generateCommand()">
+        <option value="best">Máxima Calidad Disponible (4K/2K/1080p)</option>
+        <option value="1080" selected>Full HD (1080p) - Recomendado</option>
+        <option value="720">HD (720p) - Descarga Rápida</option>
+        <option value="480">Estándar (480p) - Poco peso</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Sección Especial para Insertar Audio Local -->
+  <div id="audioMergeBox" class="audio-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Configuración de Ensamblado de Audio (FFmpeg)</h3>
+    <div class="grid-2">
+      <div>
+        <label for="localVideo">Ruta / Nombre del Video Base:</label>
+        <input type="text" id="localVideo" value="trivia_01.mp4" placeholder="Ej: D:\Trivias\trivia_01.mp4" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="localAudio">Ruta / Nombre del Audio (MP3/WAV):</label>
+        <input type="text" id="localAudio" value="musica.mp3" placeholder="Ej: D:\Trivias\musica.mp3" oninput="generateCommand()">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label for="audioMode">Modo de Audio:</label>
+        <select id="audioMode" onchange="generateCommand()">
+          <option value="replace" selected>Reemplazar audio original por completo</option>
+          <option value="mix">Mezclar nuevo audio con el audio existente</option>
+        </select>
+      </div>
+      <div>
+        <label for="outputVideo">Nombre del Archivo Resultante:</label>
+        <input type="text" id="outputVideo" value="trivia_01_final.mp4" placeholder="trivia_01_final.mp4" oninput="generateCommand()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección Especial para Reparar Metadatos (Faststart) -->
+  <div id="metaBox" class="audio-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Reparación e Indexación de Contenedor MP4</h3>
+    <div class="grid-2">
+      <div>
+        <label for="fixMode">Tipo de Procesamiento:</label>
+        <select id="fixMode" onchange="toggleFixModeOptions(); generateCommand();">
+          <option value="single" selected>Un solo archivo</option>
+          <option value="batch">Lote numerado (Bucle FOR)</option>
+        </select>
+      </div>
+      <div id="singleFixBox">
+        <label for="singleInput">Nombre/Ruta del Archivo:</label>
+        <input type="text" id="singleInput" value="trivia_01.mp4" placeholder="trivia_01.mp4" oninput="generateCommand()">
+      </div>
+    </div>
+
+    <div id="batchFixBox" class="grid-3" style="display: none; margin-top: 10px;">
+      <div>
+        <label for="batchPrefix">Prefijo:</label>
+        <input type="text" id="batchPrefix" value="trivia_0" placeholder="Ej: trivia_0" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="batchStart">Inicio:</label>
+        <input type="number" id="batchStart" value="2" min="0" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="batchEnd">Fin:</label>
+        <input type="number" id="batchEnd" value="6" min="1" oninput="generateCommand()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila dividida en 3 columnas -->
+  <div class="grid-3" id="segmentsSection">
+    <div>
+      <label for="mode">4. Modo de Descarga:</label>
+      <select id="mode" onchange="toggleSegments(); generateCommand();">
+        <option value="single" selected>Archivo Completo</option>
+        <option value="segments">Por Tramos (Fraccionado)</option>
+      </select>
+    </div>
+    <div>
+      <label for="duration">Minutos por tramo:</label>
+      <input type="number" id="duration" value="30" step="5" disabled oninput="generateCommand()">
+    </div>
+    <div>
+      <label for="totalDuration">Duración Total Video:</label>
+      <input type="text" id="totalDuration" value="01:00:00" placeholder="HH:MM:SS" disabled oninput="generateCommand()">
+    </div>
+  </div>
+
+  <label for="finalOutput">Comando Listo para la Consola (CMD):</label>
+  <textarea id="finalOutput" class="code" readonly></textarea>
+
+  <button id="copyBtn" onclick="copyToClipboard()" style="background: #f9e2af; color: #11111b; margin-top: 15px;">
+    📋 Copiar Comando al Portapapeles
+  </button>
+</div>
+
+<script>
+  async function pasteClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        document.getElementById('url').value = text.trim();
+        generateCommand();
+      }
+    } catch (err) {
+      alert('Por favor concede permiso al navegador para acceder al portapapeles.');
+    }
+  }
+
+  function toggleFormatOptions() {
+    const ext = document.getElementById('ext').value;
+    const isAudio = (ext === 'mp3' || ext === 'm4a');
+    const isMerge = (ext === 'merge_audio');
+    const isMeta = (ext === 'fix_meta');
+
+    document.getElementById('qualityBox').style.display = (isAudio || isMerge || isMeta) ? 'none' : 'block';
+    document.getElementById('downloadSection').style.display = (isMerge || isMeta) ? 'none' : 'flex';
+    document.getElementById('segmentsSection').style.display = (isMerge || isMeta) ? 'none' : 'grid';
+    document.getElementById('audioMergeBox').style.display = isMerge ? 'block' : 'none';
+    document.getElementById('metaBox').style.display = isMeta ? 'block' : 'none';
+  }
+
+  function toggleFixModeOptions() {
+    const isBatch = (document.getElementById('fixMode').value === 'batch');
+    document.getElementById('singleFixBox').style.display = isBatch ? 'none' : 'block';
+    document.getElementById('batchFixBox').style.display = isBatch ? 'grid' : 'none';
+  }
+
+  function toggleSegments() {
+    const isSeg = (document.getElementById('mode').value === 'segments');
+    document.getElementById('duration').disabled = !isSeg;
+    document.getElementById('totalDuration').disabled = !isSeg;
+  }
+
+  function timeToSeconds(timeStr) {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  }
+
+  function secondsToTime(secs) {
+    const h = Math.floor(secs / 3600).toString().padStart(2, '0');
+    const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(secs % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function getFormatFilter(quality, ext) {
+    if (ext === 'mp4') {
+      if (quality === 'best') return '"bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/best"';
+      return `"bv*[height<=${quality}][ext=mp4]+ba[ext=m4a]/b[height<=${quality}][ext=mp4]/best"`;
+    } else {
+      if (quality === 'best') return '"bestvideo+bestaudio"';
+      return `"bestvideo[height<=${quality}]+bestaudio/best[height<=${quality}]"`;
+    }
+  }
+
+  function generateCommand() {
+    const ext = document.getElementById('ext').value;
+    const output = document.getElementById('finalOutput');
+
+    // Módulo especial para reparación de metadatos (faststart)
+    if (ext === 'fix_meta') {
+      const fixMode = document.getElementById('fixMode').value;
+      if (fixMode === 'single') {
+        const fileIn = document.getElementById('singleInput').value.trim() || 'archivo.mp4';
+        const nameParts = fileIn.split('.');
+        const ext = nameParts.pop();
+        const baseName = nameParts.join('.');
+        output.value = `ffmpeg -i "${fileIn}" -c copy -movflags +faststart "${baseName}_corregido.${ext}"`;
+      } else {
+        const prefix = document.getElementById('batchPrefix').value.trim();
+        const start = document.getElementById('batchStart').value;
+        const end = document.getElementById('batchEnd').value;
+        output.value = `for /L %i in (${start},1,${end}) do ffmpeg -i ${prefix}%i.mp4 -c copy -movflags +faststart ${prefix}%i_corregido.mp4`;
+      }
+      return;
+    }
+
+    // Módulo especial para unión de audio con FFmpeg
+    if (ext === 'merge_audio') {
+      const vIn = document.getElementById('localVideo').value.trim() || 'video.mp4';
+      const aIn = document.getElementById('localAudio').value.trim() || 'audio.mp3';
+      const vOut = document.getElementById('outputVideo').value.trim() || 'resultado.mp4';
+      const aMode = document.getElementById('audioMode').value;
+
+      if (aMode === 'replace') {
+        output.value = `ffmpeg -i "${vIn}" -i "${aIn}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "${vOut}"`;
+      } else {
+        output.value = `ffmpeg -i "${vIn}" -i "${aIn}" -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[a]" -map 0:v -map "[a]" -c:v copy -c:a aac "${vOut}"`;
+      }
+      return;
+    }
+
+    const url = document.getElementById('url').value.trim() || 'URL_DEL_VIDEO';
+    const defaultPath = '%USERPROFILE%\\Downloads\\';
+    const defaultPrefix = '%(title)s';
+    
+    const quality = document.getElementById('quality').value;
+    const mode = document.getElementById('mode').value;
+    const isAudio = (ext === 'mp3' || ext === 'm4a');
+
+    let baseCmd = '';
+    if (isAudio) {
+      if (ext === 'mp3') {
+        baseCmd = `yt-dlp -x --audio-format mp3 --audio-quality 0`;
+      } else {
+        baseCmd = `yt-dlp -f "ba[ext=m4a]/ba" -x --audio-format m4a`;
+      }
+    } else {
+      const formatFilter = getFormatFilter(quality, ext);
+      baseCmd = `yt-dlp -f ${formatFilter} --merge-output-format ${ext}`;
+    }
+
+    if (mode === 'single') {
+      output.value = `${baseCmd} -o "${defaultPath}${defaultPrefix}.%(ext)s" "${url}"`;
+    } else {
+      const segMinutes = parseFloat(document.getElementById('duration').value) || 30;
+      const totalSecs = timeToSeconds(document.getElementById('totalDuration').value);
+      const segSecs = segMinutes * 60;
+      
+      if (totalSecs <= 0) {
+        output.value = 'Ingresa la duración total del video para calcular los tramos.';
+        return;
+      }
+
+      let currentSec = 0;
+      let commands = [];
+      let index = 1;
+
+      while (currentSec < totalSecs) {
+        let nextSec = Math.min(currentSec + segSecs, totalSecs);
+        let startTime = secondsToTime(currentSec);
+        let endTime = secondsToTime(nextSec);
+        let numStr = index.toString().padStart(2, '0');
+
+        let cmd = `${baseCmd} --download-sections "*${startTime}-${endTime}" -o "${defaultPath}${defaultPrefix}_parte_${numStr}.%(ext)s" "${url}"`;
+        commands.push(cmd);
+
+        currentSec = nextSec;
+        index++;
+      }
+
+      output.value = commands.join(' && ');
+    }
+  }
+
+  function copyToClipboard() {
+    const outputText = document.getElementById('finalOutput').value;
+    const copyBtn = document.getElementById('copyBtn');
+
+    if (!outputText || outputText.startsWith('Ingresa')) {
+      alert('Primero genera un comando válido.');
+      return;
+    }
+
+    navigator.clipboard.writeText(outputText).then(() => {
+      const originalText = copyBtn.innerText;
+      copyBtn.innerText = '¡Copiado con éxito! ✅';
+      copyBtn.style.background = '#a6e3a1';
+
+      setTimeout(() => {
+        copyBtn.innerText = originalText;
+        copyBtn.style.background = '#f9e2af';
+      }, 2000);
+    });
+  }
+
+  generateCommand();
+</script>
+
+</body>
+</html>
