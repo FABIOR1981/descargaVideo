@@ -137,7 +137,7 @@
         <code>Invoke-WebRequest -Uri "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "yt-dlp.exe"</code>
       </li>
       <li>
-        <b>Nota sobre FFmpeg:</b> Es imprescindible para convertir audio a MP3, unir transmisiones, reparar metadatos o insertar pistas de audio.
+        <b>Nota sobre FFmpeg:</b> Es imprescindible para convertir audio a MP3, normalizar volumen, reparar metadatos o insertar pistas de audio.
       </li>
     </ul>
   </details>
@@ -164,6 +164,7 @@
         <option value="m4a">Solo Audio M4A (Sin pérdida / Original)</option>
         <option value="merge_audio">🎵 Insertar/Mezclar Audio local con Video</option>
         <option value="fix_meta">🛠️ Reparar Metadatos MP4 (faststart / Bucle)</option>
+        <option value="normalize_lufs">🔊 Normalizar Audio (-26 LUFS / Sala de Espera)</option>
       </select>
     </div>
     <div id="qualityBox">
@@ -174,6 +175,54 @@
         <option value="720">HD (720p) - Descarga Rápida</option>
         <option value="480">Estándar (480p) - Poco peso</option>
       </select>
+    </div>
+  </div>
+
+  <!-- Sección Especial para Normalización de Audio (LUFS) -->
+  <div id="normalizeBox" class="audio-box" style="display: none;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:15px;">Normalización de Audio EBU R128 (FFmpeg)</h3>
+    <div class="grid-3">
+      <div>
+        <label for="normMode">Modo de Procesamiento:</label>
+        <select id="normMode" onchange="toggleNormModeOptions(); generateCommand();">
+          <option value="single" selected>Un solo archivo</option>
+          <option value="batch_num">Lote numerado (FOR /L)</option>
+          <option value="batch_all">Todos los *.mp4 de la carpeta (CMD)</option>
+        </select>
+      </div>
+      <div>
+        <label for="normTarget">Objetivo LUFS:</label>
+        <input type="number" id="normTarget" value="-26" step="1" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normOverwrite">Manejo de Nombre:</label>
+        <select id="normOverwrite" onchange="generateCommand()">
+          <option value="replace" selected>Reemplazar original (Mantiene nombre)</option>
+          <option value="prefix">Crear copia (norm_archivo.mp4)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Opción Un Solo Archivo -->
+    <div id="normSingleBox" style="margin-top: 10px;">
+      <label for="normSingleInput">Nombre / Ruta del Archivo:</label>
+      <input type="text" id="normSingleInput" value="trivia_01.mp4" placeholder="trivia_01.mp4" oninput="generateCommand()">
+    </div>
+
+    <!-- Opción Lote Numerado -->
+    <div id="normBatchBox" class="grid-3" style="display: none; margin-top: 10px;">
+      <div>
+        <label for="normPrefix">Prefijo:</label>
+        <input type="text" id="normPrefix" value="trivia_0" placeholder="Ej: trivia_0" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normStart">Inicio:</label>
+        <input type="number" id="normStart" value="1" min="0" oninput="generateCommand()">
+      </div>
+      <div>
+        <label for="normEnd">Fin:</label>
+        <input type="number" id="normEnd" value="6" min="1" oninput="generateCommand()">
+      </div>
     </div>
   </div>
 
@@ -283,18 +332,26 @@
     const isAudio = (ext === 'mp3' || ext === 'm4a');
     const isMerge = (ext === 'merge_audio');
     const isMeta = (ext === 'fix_meta');
+    const isNorm = (ext === 'normalize_lufs');
 
-    document.getElementById('qualityBox').style.display = (isAudio || isMerge || isMeta) ? 'none' : 'block';
-    document.getElementById('downloadSection').style.display = (isMerge || isMeta) ? 'none' : 'flex';
-    document.getElementById('segmentsSection').style.display = (isMerge || isMeta) ? 'none' : 'grid';
+    document.getElementById('qualityBox').style.display = (isAudio || isMerge || isMeta || isNorm) ? 'none' : 'block';
+    document.getElementById('downloadSection').style.display = (isMerge || isMeta || isNorm) ? 'none' : 'flex';
+    document.getElementById('segmentsSection').style.display = (isMerge || isMeta || isNorm) ? 'none' : 'grid';
     document.getElementById('audioMergeBox').style.display = isMerge ? 'block' : 'none';
     document.getElementById('metaBox').style.display = isMeta ? 'block' : 'none';
+    document.getElementById('normalizeBox').style.display = isNorm ? 'block' : 'none';
   }
 
   function toggleFixModeOptions() {
     const isBatch = (document.getElementById('fixMode').value === 'batch');
     document.getElementById('singleFixBox').style.display = isBatch ? 'none' : 'block';
     document.getElementById('batchFixBox').style.display = isBatch ? 'grid' : 'none';
+  }
+
+  function toggleNormModeOptions() {
+    const normMode = document.getElementById('normMode').value;
+    document.getElementById('normSingleBox').style.display = (normMode === 'single') ? 'block' : 'none';
+    document.getElementById('normBatchBox').style.display = (normMode === 'batch_num') ? 'grid' : 'none';
   }
 
   function toggleSegments() {
@@ -331,6 +388,38 @@
   function generateCommand() {
     const ext = document.getElementById('ext').value;
     const output = document.getElementById('finalOutput');
+
+    // Módulo especial para Normalización LUFS
+    if (ext === 'normalize_lufs') {
+      const normMode = document.getElementById('normMode').value;
+      const targetLUFS = document.getElementById('normTarget').value || '-26';
+      const overwrite = document.getElementById('normOverwrite').value === 'replace';
+
+      if (normMode === 'single') {
+        const fileIn = document.getElementById('normSingleInput').value.trim() || 'video.mp4';
+        if (overwrite) {
+          output.value = `ffmpeg -i "${fileIn}" -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy "temp_${fileIn}" && move /y "temp_${fileIn}" "${fileIn}"`;
+        } else {
+          output.value = `ffmpeg -i "${fileIn}" -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy "norm_${fileIn}"`;
+        }
+      } else if (normMode === 'batch_num') {
+        const prefix = document.getElementById('normPrefix').value.trim();
+        const start = document.getElementById('normStart').value;
+        const end = document.getElementById('normEnd').value;
+        if (overwrite) {
+          output.value = `for /L %i in (${start},1,${end}) do (ffmpeg -i ${prefix}%i.mp4 -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy temp_${prefix}%i.mp4 && move /y temp_${prefix}%i.mp4 ${prefix}%i.mp4)`;
+        } else {
+          output.value = `for /L %i in (${start},1,${end}) do ffmpeg -i ${prefix}%i.mp4 -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy norm_${prefix}%i.mp4`;
+        }
+      } else { // batch_all (*.mp4 en CMD)
+        if (overwrite) {
+          output.value = `for %f in (*.mp4) do (ffmpeg -i "%f" -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy "temp_%f" && move /y "temp_%f" "%f")`;
+        } else {
+          output.value = `for %f in (*.mp4) do ffmpeg -i "%f" -af loudnorm=I=${targetLUFS}:LRA=7:TP=-2 -c:v copy "norm_%f"`;
+        }
+      }
+      return;
+    }
 
     // Módulo especial para reparación de metadatos (faststart)
     if (ext === 'fix_meta') {
