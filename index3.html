@@ -132,14 +132,35 @@
     </select>
   </div>
 
-  <!-- PASO 2A: URL DE DESCARGA (Solo visible para descargas) -->
+  <!-- PASO 2A: URL DE DESCARGA -->
   <div id="urlSection" style="margin-top: 15px;">
     <div class="input-group">
       <div>
-        <label for="url">2. URL del Video Web:</label>
-        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=..." oninput="generateCommand()">
+        <label for="url">2. URL del Video o Playlist Web:</label>
+        <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=... o playlist" oninput="generateCommand()">
       </div>
       <button type="button" class="btn-paste" onclick="pasteClipboard()">📋 Pegar URL</button>
+    </div>
+  </div>
+
+  <!-- OPCIONES DE PLAYLIST / LISTAS -->
+  <div id="playlistBox" class="action-box" style="margin-top: 15px;">
+    <h3 style="margin-top:0; color:#f9e2af; font-size:14px;">Opciones de Lista / Playlist (Varias partes)</h3>
+    <div class="grid-2">
+      <div>
+        <label for="isPlaylist">¿Es un enlace de Playlist / Partes?:</label>
+        <select id="isPlaylist" onchange="generateCommand()">
+          <option value="no" selected>No (Video individual)</option>
+          <option value="yes">Sí (Es una playlist / Lista de varias partes)</option>
+        </select>
+      </div>
+      <div>
+        <label for="playlistMode">Modo de procesamiento de la lista:</label>
+        <select id="playlistMode" onchange="generateCommand()">
+          <option value="separate" selected>Descargar en partes separadas (01, 02...)</option>
+          <option value="concat">Unir todas las partes en un solo video</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -315,6 +336,7 @@
     const isDownload = isDlVideo || isDlAudio;
 
     document.getElementById('urlSection').style.display = isDownload ? 'block' : 'none';
+    document.getElementById('playlistBox').style.display = isDownload ? 'block' : 'none';
     document.getElementById('dlVideoBox').style.display = isDlVideo ? 'grid' : 'none';
     document.getElementById('dlAudioBox').style.display = isDlAudio ? 'grid' : 'none';
     document.getElementById('segmentsSection').style.display = isDownload ? 'grid' : 'none';
@@ -403,18 +425,31 @@
 
     // 4. DESCARGAS WEB (yt-dlp)
     const url = document.getElementById('url').value.trim() || 'URL_DEL_VIDEO';
-    const path = '%USERPROFILE%\\Downloads\\%(title)s.%(ext)s';
+    const isPlaylist = document.getElementById('isPlaylist').value === 'yes';
+    const playlistMode = document.getElementById('playlistMode').value;
+
+    let path = '%USERPROFILE%\\Downloads\\%(title)s.%(ext)s';
+    let extraFlags = '';
+
+    if (isPlaylist) {
+      if (playlistMode === 'concat') {
+        extraFlags = ' --concat-playlist always';
+        path = '%USERPROFILE%\\Downloads\\%(playlist_title)s.%(ext)s';
+      } else {
+        path = '%USERPROFILE%\\Downloads\\%(playlist_index)s - %(title)s.%(ext)s';
+      }
+    }
 
     if (action === 'dl_video') {
       const fmt = document.getElementById('videoFormat').value;
       const q = document.getElementById('quality').value;
       const filter = (q === 'best') ? `"bv*[ext=${fmt}]+ba/b[ext=${fmt}]/best"` : `"bv*[height<=${q}][ext=${fmt}]+ba/b[height<=${q}]/best"`;
-      output.value = `yt-dlp -f ${filter} --merge-output-format ${fmt} -o "${path}" "${url}"`;
+      output.value = `yt-dlp -f ${filter} --merge-output-format ${fmt}${extraFlags} -o "${path}" "${url}"`;
     } else {
       const afmt = document.getElementById('audioFormat').value;
       output.value = (afmt === 'mp3')
-        ? `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${path}" "${url}"`
-        : `yt-dlp -f "ba[ext=m4a]/ba" -x --audio-format m4a -o "${path}" "${url}"`;
+        ? `yt-dlp -x --audio-format mp3 --audio-quality 0${extraFlags} -o "${path}" "${url}"`
+        : `yt-dlp -f "ba[ext=m4a]/ba" -x --audio-format m4a${extraFlags} -o "${path}" "${url}"`;
     }
   }
 
