@@ -6,6 +6,10 @@ Permite configurar descargas de video, audio y fraccionamiento por tramos en cue
 
 ---
 
+## Documentación
+
+El manual de usuario está en [documentacion-central](https://github.com/FABIOR1981/documentacion-central/tree/main/descargaVideo/documentacion) ([PDF](https://github.com/FABIOR1981/documentacion-central/blob/main/descargaVideo/documentacion/MANUAL_USUARIO.pdf)). También se puede consultar desde la bitácora de proyectos.
+
 ## 🚀 Características
 
 * **Interfaz Limpia y Oscura:** Diseño moderno, responsivo y adaptado para un trabajo rápido.
